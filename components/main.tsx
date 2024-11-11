@@ -17,6 +17,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -68,6 +69,8 @@ export default function Main() {
     const [newFriend, setNewFriend] = useState("");
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isEditMembersOpen, setIsEditMembersOpen] = useState(false);
+    const [isEditExpensesOpen, setIsEditExpensesOpen] = useState(false);
     const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -386,157 +389,186 @@ export default function Main() {
                 </Sidebar>
                 <div className="flex-1 overflow-auto">
                     <div className="container mx-auto p-4 max-w-7xl">
-                        <div className="flex items-center justify-between mb-6">
+                        <div className="flex flex-row items-center justify-between mb-6">
                             <h1 className="text-3xl font-bold">
                                 {currentGroup?.name || "Select a Group"}
                             </h1>
-                        </div>
-                        {currentGroup && (
-                            <div className="grid gap-6 md:grid-cols-2">
-                                <Card className="mb-6">
-                                    <CardHeader>
-                                        <CardTitle>Add New Expense</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid gap-4">
-                                            <div>
-                                                <Label htmlFor="description">
-                                                    Description
-                                                </Label>
-                                                <Input
-                                                    id="description"
-                                                    value={description}
-                                                    onChange={(e) =>
-                                                        setDescription(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="Expense description"
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="amount">
-                                                    Amount
-                                                </Label>
-                                                <Input
-                                                    id="amount"
-                                                    type="number"
-                                                    value={amount}
-                                                    onChange={(e) =>
-                                                        setAmount(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                    placeholder="Expense amount"
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="paidBy">
-                                                    Paid By
-                                                </Label>
-                                                <Select
-                                                    onValueChange={setPaidBy}
-                                                    value={paidBy}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select who paid" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {currentGroup.friends.map(
-                                                            (friend) => (
-                                                                <SelectItem
-                                                                    key={friend}
-                                                                    value={
+                            {currentGroup?.name && (
+                                <div className="flex flex-row gap-2">
+                                    <Dialog
+                                        open={isEditExpensesOpen}
+                                        onOpenChange={setIsEditExpensesOpen}
+                                    >
+                                        <DialogTrigger asChild>
+                                            <Button type="button">
+                                                Add Expense
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>
+                                                    Add Expense
+                                                </DialogTitle>
+                                            </DialogHeader>
+                                            <div className="grid gap-4">
+                                                <div>
+                                                    <Label htmlFor="description">
+                                                        Description
+                                                    </Label>
+                                                    <Input
+                                                        id="description"
+                                                        value={description}
+                                                        onChange={(e) =>
+                                                            setDescription(
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder="Expense description"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="amount">
+                                                        Amount
+                                                    </Label>
+                                                    <Input
+                                                        id="amount"
+                                                        type="number"
+                                                        value={amount}
+                                                        onChange={(e) =>
+                                                            setAmount(
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder="Expense amount"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="paidBy">
+                                                        Paid By
+                                                    </Label>
+                                                    <Select
+                                                        onValueChange={
+                                                            setPaidBy
+                                                        }
+                                                        value={paidBy}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select who paid" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {currentGroup.friends.map(
+                                                                (friend) => (
+                                                                    <SelectItem
+                                                                        key={
+                                                                            friend
+                                                                        }
+                                                                        value={
+                                                                            friend
+                                                                        }
+                                                                    >
+                                                                        {friend}
+                                                                    </SelectItem>
+                                                                )
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div>
+                                                    <Label htmlFor="splitWith">
+                                                        Split With
+                                                    </Label>
+                                                    <Select
+                                                        onValueChange={(
+                                                            value
+                                                        ) =>
+                                                            setSplitWith(
+                                                                (prev) => [
+                                                                    ...prev,
+                                                                    value,
+                                                                ]
+                                                            )
+                                                        }
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select friends to split with" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {currentGroup.friends
+                                                                .filter(
+                                                                    (friend) =>
+                                                                        friend !==
+                                                                            paidBy &&
+                                                                        !splitWith.includes(
+                                                                            friend
+                                                                        )
+                                                                )
+                                                                .map(
+                                                                    (
                                                                         friend
-                                                                    }
+                                                                    ) => (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                friend
+                                                                            }
+                                                                            value={
+                                                                                friend
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                friend
+                                                                            }
+                                                                        </SelectItem>
+                                                                    )
+                                                                )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        {splitWith.map(
+                                                            (friend) => (
+                                                                <span
+                                                                    key={friend}
+                                                                    className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm"
                                                                 >
                                                                     {friend}
-                                                                </SelectItem>
+                                                                    <button
+                                                                        onClick={() =>
+                                                                            setSplitWith(
+                                                                                splitWith.filter(
+                                                                                    (
+                                                                                        f
+                                                                                    ) =>
+                                                                                        f !==
+                                                                                        friend
+                                                                                )
+                                                                            )
+                                                                        }
+                                                                        className="ml-2 text-primary-foreground hover:text-red-500"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                </span>
                                                             )
                                                         )}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="splitWith">
-                                                    Split With
-                                                </Label>
-                                                <Select
-                                                    onValueChange={(value) =>
-                                                        setSplitWith((prev) => [
-                                                            ...prev,
-                                                            value,
-                                                        ])
-                                                    }
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select friends to split with" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {currentGroup.friends
-                                                            .filter(
-                                                                (friend) =>
-                                                                    friend !==
-                                                                        paidBy &&
-                                                                    !splitWith.includes(
-                                                                        friend
-                                                                    )
-                                                            )
-                                                            .map((friend) => (
-                                                                <SelectItem
-                                                                    key={friend}
-                                                                    value={
-                                                                        friend
-                                                                    }
-                                                                >
-                                                                    {friend}
-                                                                </SelectItem>
-                                                            ))}
-                                                    </SelectContent>
-                                                </Select>
-                                                <div className="mt-2 flex flex-wrap gap-2">
-                                                    {splitWith.map((friend) => (
-                                                        <span
-                                                            key={friend}
-                                                            className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm"
-                                                        >
-                                                            {friend}
-                                                            <button
-                                                                onClick={() =>
-                                                                    setSplitWith(
-                                                                        splitWith.filter(
-                                                                            (
-                                                                                f
-                                                                            ) =>
-                                                                                f !==
-                                                                                friend
-                                                                        )
-                                                                    )
-                                                                }
-                                                                className="ml-2 text-primary-foreground hover:text-red-500"
-                                                            >
-                                                                ×
-                                                            </button>
-                                                        </span>
-                                                    ))}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <Switch
-                                                    id="custom-split"
-                                                    checked={isCustomSplit}
-                                                    onCheckedChange={
-                                                        setIsCustomSplit
-                                                    }
-                                                />
-                                                <Label htmlFor="custom-split">
-                                                    Custom Split
-                                                </Label>
-                                            </div>
-                                            {isCustomSplit && (
-                                                <div className="grid gap-2">
-                                                    {[paidBy, ...splitWith].map(
-                                                        (friend) => (
+                                                <div className="flex items-center space-x-2">
+                                                    <Switch
+                                                        id="custom-split"
+                                                        checked={isCustomSplit}
+                                                        onCheckedChange={
+                                                            setIsCustomSplit
+                                                        }
+                                                    />
+                                                    <Label htmlFor="custom-split">
+                                                        Custom Split
+                                                    </Label>
+                                                </div>
+                                                {isCustomSplit && (
+                                                    <div className="grid gap-2">
+                                                        {[
+                                                            paidBy,
+                                                            ...splitWith,
+                                                        ].map((friend) => (
                                                             <div
                                                                 key={friend}
                                                                 className="flex items-center space-x-2"
@@ -567,61 +599,77 @@ export default function Main() {
                                                                     placeholder="Amount"
                                                                 />
                                                             </div>
-                                                        )
-                                                    )}
-                                                </div>
-                                            )}
-                                            <Button onClick={addExpense}>
-                                                Add Expense
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="mb-6">
-                                    <CardHeader>
-                                        <CardTitle>Add New Friend</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="flex flex-col gap-2">
-                                        <div className="flex gap-2">
-                                            <Input
-                                                value={newFriend}
-                                                onChange={(e) =>
-                                                    setNewFriend(e.target.value)
-                                                }
-                                                placeholder="Friend's name"
-                                            />
-                                            <Button onClick={addFriend}>
-                                                Add Friend
-                                            </Button>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                                            {currentGroup.friends.map(
-                                                (friend) => (
-                                                    <div
-                                                        key={friend}
-                                                        className="flex items-center justify-between py-1 pl-4 pr-1 border rounded-lg"
-                                                    >
-                                                        <span>{friend}</span>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                removeFriend(
-                                                                    friend
-                                                                )
-                                                            }
-                                                            className="text-destructive"
-                                                        >
-                                                            <X />
-                                                        </Button>
+                                                        ))}
                                                     </div>
-                                                )
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
+                                                )}
+                                                <Button onClick={addExpense}>
+                                                    Add Expense
+                                                </Button>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                    <Dialog
+                                        open={isEditMembersOpen}
+                                        onOpenChange={setIsEditMembersOpen}
+                                    >
+                                        <DialogTrigger asChild>
+                                            <Button type="button">
+                                                Manage Members
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>
+                                                    Manage Members
+                                                </DialogTitle>
+                                            </DialogHeader>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    value={newFriend}
+                                                    onChange={(e) =>
+                                                        setNewFriend(
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    placeholder="Member's name"
+                                                />
+                                                <Button onClick={addFriend}>
+                                                    Add Member
+                                                </Button>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                                                {currentGroup.friends.map(
+                                                    (friend) => (
+                                                        <div
+                                                            key={friend}
+                                                            className="flex items-center justify-between py-1 pl-4 pr-1 border rounded-lg"
+                                                        >
+                                                            <span>
+                                                                {friend}
+                                                            </span>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() =>
+                                                                    removeFriend(
+                                                                        friend
+                                                                    )
+                                                                }
+                                                                className="text-destructive"
+                                                            >
+                                                                <X />
+                                                            </Button>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            )}
+                        </div>
+                        {currentGroup && (
+                            <div className="grid gap-6 md:grid-cols-2">
                                 <Card className="mb-6">
                                     <CardHeader>
                                         <CardTitle>Expenses</CardTitle>

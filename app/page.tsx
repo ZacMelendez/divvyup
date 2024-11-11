@@ -1,5 +1,5 @@
-import SplitwiseClone from "@/components/splitwise-clone";
+import Main from "@/components/main";
 
 export default function Page() {
-    return <SplitwiseClone />;
+    return <Main />;
 }

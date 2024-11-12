@@ -334,12 +334,12 @@ export default function Main() {
                 <SidebarTrigger className="ml-auto" />
             </div>
             <div className="flex h-[calc(100vh-56px)] mt-16 lg:mt-0 lg:h-screen w-screen">
-                <Sidebar className="relative">
+                <Sidebar>
                     <SidebarHeader>
                         <h2 className="text-xl font-bold p-4 hidden lg:block">
                             DivvyUp
                         </h2>
-                        <div className="ml-auto">
+                        <div className="ml-auto lg:hidden">
                             <SidebarTrigger />
                         </div>
                     </SidebarHeader>
@@ -398,9 +398,11 @@ export default function Main() {
                 <div className="flex-1 overflow-auto h-full p-4 box-border">
                     <div className="container mx-auto p-4 max-w-7xl h-full flex flex-col">
                         <div className="flex flex-row items-center justify-between mb-6 w-full">
-                            <h1 className="text-3xl font-bold">
-                                {currentGroup?.name || "Select a Group"}
-                            </h1>
+                            {currentGroup && (
+                                <h1 className="text-3xl font-bold">
+                                    {currentGroup?.name}
+                                </h1>
+                            )}
                             {currentGroup?.name && (
                                 <div className="flex flex-row gap-2">
                                     <FormProvider {...methods}>
@@ -490,158 +492,181 @@ export default function Main() {
                                 </div>
                             )}
                         </div>
-                        {currentGroup && currentGroup?.members.length > 1 ? (
-                            currentGroup?.expenses?.length > 0 ? (
-                                <div className="flex flex-col-reverse gap-3 sm:flex-row flex-1 w-full sm:overflow-hidden">
-                                    <div className="sm:flex-1">
-                                        <h2 className="font-semibold">
-                                            Expenses
-                                        </h2>
-                                        <div className="pr-4 pt-2 pb-4 flex flex-col lg:grid lg:grid-cols-3 gap-3 overflow-y-scroll h-full">
-                                            {currentGroup.expenses.map(
-                                                (expense) => (
-                                                    <div
-                                                        key={expense.id}
-                                                        className="mb-2 p-2 bg-muted rounded-lg flex justify-between items-center"
-                                                    >
-                                                        <div>
-                                                            <p>
-                                                                <strong>
-                                                                    {
-                                                                        expense.description
-                                                                    }
-                                                                </strong>{" "}
-                                                                - $
-                                                                {expense.amount}
-                                                            </p>
-                                                            <p>
-                                                                Paid by:{" "}
-                                                                {expense.paidBy}
-                                                            </p>
-                                                            <p>
-                                                                Split:{" "}
-                                                                {Object.entries(
-                                                                    expense.split
-                                                                )
-                                                                    .map(
-                                                                        ([
-                                                                            member,
-                                                                            amount,
-                                                                        ]) =>
-                                                                            `${member}: $${amount.toFixed(
-                                                                                2
-                                                                            )}`
-                                                                    )
-                                                                    .join(", ")}
-                                                            </p>
-                                                        </div>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                methods.reset(
-                                                                    expense
-                                                                );
-                                                                startEditingExpense(
-                                                                    expense
-                                                                );
-                                                            }}
+                        {currentGroup ? (
+                            currentGroup?.members.length > 1 ? (
+                                currentGroup?.expenses?.length > 0 ? (
+                                    <div className="flex flex-col-reverse gap-3 sm:flex-row flex-1 w-full sm:overflow-hidden">
+                                        <div className="sm:flex-1">
+                                            <h2 className="font-semibold">
+                                                Expenses
+                                            </h2>
+                                            <div className="pr-4 pt-2 pb-4 flex flex-col lg:grid lg:grid-cols-3 gap-3 overflow-y-scroll h-full">
+                                                {currentGroup.expenses.map(
+                                                    (expense) => (
+                                                        <div
+                                                            key={expense.id}
+                                                            className="mb-2 p-2 bg-muted rounded-lg flex justify-between items-center"
                                                         >
-                                                            Edit
-                                                        </Button>
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                    <Card className="min-w-[250px] h-fit">
-                                        <CardHeader>
-                                            <CardTitle>Balances</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            {Object.entries(balances).map(
-                                                ([person, owes]) => (
-                                                    <div
-                                                        key={person}
-                                                        className="mb-2"
-                                                    >
-                                                        <h3 className="font-semibold">
-                                                            {person}
-                                                        </h3>
-                                                        {Object.entries(
-                                                            owes
-                                                        ).map(
-                                                            ([
-                                                                otherPerson,
-                                                                amount,
-                                                            ]) =>
-                                                                amount !==
-                                                                    0 && (
-                                                                    <p
-                                                                        key={
-                                                                            otherPerson
-                                                                        }
-                                                                        className={
-                                                                            amount >
-                                                                            0
-                                                                                ? "text-red-500"
-                                                                                : "text-green-500"
-                                                                        }
-                                                                    >
-                                                                        {amount >
-                                                                        0
-                                                                            ? "Owes"
-                                                                            : "Is owed"}{" "}
-                                                                        $
-                                                                        {Math.abs(
-                                                                            amount
-                                                                        ).toFixed(
-                                                                            2
-                                                                        )}{" "}
-                                                                        {amount >
-                                                                        0
-                                                                            ? "to"
-                                                                            : "by"}{" "}
+                                                            <div>
+                                                                <p>
+                                                                    <strong>
                                                                         {
-                                                                            otherPerson
+                                                                            expense.description
                                                                         }
-                                                                    </p>
-                                                                )
-                                                        )}
-                                                    </div>
-                                                )
-                                            )}
-                                        </CardContent>
-                                    </Card>
-                                </div>
+                                                                    </strong>{" "}
+                                                                    - $
+                                                                    {
+                                                                        expense.amount
+                                                                    }
+                                                                </p>
+                                                                <p>
+                                                                    Paid by:{" "}
+                                                                    {
+                                                                        expense.paidBy
+                                                                    }
+                                                                </p>
+                                                                <p>
+                                                                    Split:{" "}
+                                                                    {Object.entries(
+                                                                        expense.split
+                                                                    )
+                                                                        .map(
+                                                                            ([
+                                                                                member,
+                                                                                amount,
+                                                                            ]) =>
+                                                                                `${member}: $${amount.toFixed(
+                                                                                    2
+                                                                                )}`
+                                                                        )
+                                                                        .join(
+                                                                            ", "
+                                                                        )}
+                                                                </p>
+                                                            </div>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    methods.reset(
+                                                                        expense
+                                                                    );
+                                                                    startEditingExpense(
+                                                                        expense
+                                                                    );
+                                                                }}
+                                                            >
+                                                                Edit
+                                                            </Button>
+                                                        </div>
+                                                    )
+                                                )}
+                                            </div>
+                                        </div>
+                                        <Card className="min-w-[250px] h-fit">
+                                            <CardHeader>
+                                                <CardTitle>Balances</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                {Object.entries(balances).map(
+                                                    ([person, owes]) => (
+                                                        <div
+                                                            key={person}
+                                                            className="mb-2"
+                                                        >
+                                                            <h3 className="font-semibold">
+                                                                {person}
+                                                            </h3>
+                                                            {Object.entries(
+                                                                owes
+                                                            ).map(
+                                                                ([
+                                                                    otherPerson,
+                                                                    amount,
+                                                                ]) =>
+                                                                    amount !==
+                                                                        0 && (
+                                                                        <p
+                                                                            key={
+                                                                                otherPerson
+                                                                            }
+                                                                            className={
+                                                                                amount >
+                                                                                0
+                                                                                    ? "text-red-500"
+                                                                                    : "text-green-500"
+                                                                            }
+                                                                        >
+                                                                            {amount >
+                                                                            0
+                                                                                ? "Owes"
+                                                                                : "Is owed"}{" "}
+                                                                            $
+                                                                            {Math.abs(
+                                                                                amount
+                                                                            ).toFixed(
+                                                                                2
+                                                                            )}{" "}
+                                                                            {amount >
+                                                                            0
+                                                                                ? "to"
+                                                                                : "by"}{" "}
+                                                                            {
+                                                                                otherPerson
+                                                                            }
+                                                                        </p>
+                                                                    )
+                                                            )}
+                                                        </div>
+                                                    )
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                ) : (
+                                    <div className="w-full items-center justify-center flex flex-col gap-3 flex-1">
+                                        <h3 className="text-xl font-bold">
+                                            Add some expenses to the group to
+                                            get started
+                                        </h3>
+                                        <Button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsEditExpensesOpen(true);
+                                            }}
+                                        >
+                                            Add Expenses
+                                        </Button>
+                                    </div>
+                                )
                             ) : (
                                 <div className="w-full items-center justify-center flex flex-col gap-3 flex-1">
                                     <h3 className="text-xl font-bold">
-                                        Add some expenses to the group to get
+                                        Add some members to the group to get
                                         started
                                     </h3>
                                     <Button
                                         type="button"
                                         onClick={() => {
-                                            setIsEditExpensesOpen(true);
+                                            setIsEditMembersOpen(true);
                                         }}
                                     >
-                                        Add Expenses
+                                        Manage Members
                                     </Button>
                                 </div>
                             )
                         ) : (
                             <div className="w-full items-center justify-center flex flex-col gap-3 flex-1">
                                 <h3 className="text-xl font-bold">
-                                    Add some members to the group to get started
+                                    Create a group to get started
                                 </h3>
                                 <Button
                                     type="button"
                                     onClick={() => {
-                                        setIsEditMembersOpen(true);
+                                        setIsAddGroupModalOpen(true);
                                     }}
                                 >
-                                    Manage Members
+                                    Create Group
                                 </Button>
                             </div>
                         )}

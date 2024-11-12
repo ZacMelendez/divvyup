@@ -49,11 +49,11 @@ export const ExpenseDialog = ({
     disabled: boolean;
     editing: boolean;
 }) => {
-    const methods = useFormContext<Expense>();
+    const { reset, watch, control, getValues } = useFormContext<Expense>();
 
-    const paidBy = methods.watch("paidBy");
-    const splitWith = methods.watch("splitWith");
-    const isCustomSplit = methods.watch("customSplit");
+    const paidBy = watch("paidBy");
+    const splitWith = watch("splitWith");
+    const isCustomSplit = watch("customSplit");
 
     return (
         <div className="flex flex-row gap-2">
@@ -62,9 +62,11 @@ export const ExpenseDialog = ({
                 onOpenChange={(state) => {
                     if (state === false && editing) {
                         console.log("here");
-                        methods.reset();
+                        reset();
                     }
-                    setIsEditExpensesOpen(state);
+                    setTimeout(() => {
+                        setIsEditExpensesOpen(state);
+                    }, 1000);
                 }}
             >
                 <DialogTrigger asChild>
@@ -81,7 +83,7 @@ export const ExpenseDialog = ({
                     <div className="grid gap-4">
                         <div>
                             <FormField
-                                control={methods.control}
+                                control={control}
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem>
@@ -99,7 +101,7 @@ export const ExpenseDialog = ({
                         </div>
                         <div>
                             <FormField
-                                control={methods.control}
+                                control={control}
                                 name="amount"
                                 render={({ field }) => (
                                     <FormItem>
@@ -118,7 +120,7 @@ export const ExpenseDialog = ({
                         </div>
                         <div>
                             <FormField
-                                control={methods.control}
+                                control={control}
                                 name="paidBy"
                                 render={({ field }) => (
                                     <FormItem>
@@ -152,7 +154,7 @@ export const ExpenseDialog = ({
                         </div>
                         <div>
                             <FormField
-                                control={methods.control}
+                                control={control}
                                 name="splitWith"
                                 render={({ field }) => (
                                     <FormItem>
@@ -180,7 +182,7 @@ export const ExpenseDialog = ({
                         </div>
                         <div className="flex items-center space-x-2">
                             <FormField
-                                control={methods.control}
+                                control={control}
                                 name="customSplit"
                                 render={({ field }) => (
                                     <FormItem className="flex flex-row-reverse gap-2 items-center justify-center">
@@ -207,7 +209,7 @@ export const ExpenseDialog = ({
                                         className="flex items-center"
                                     >
                                         <FormField
-                                            control={methods.control}
+                                            control={control}
                                             name={`split.${member}`}
                                             render={({ field }) => (
                                                 <FormItem className="flex flex-row items-center justify-center gap-2 w-full">
@@ -235,7 +237,7 @@ export const ExpenseDialog = ({
                         <Button
                             type="button"
                             className="flex-1"
-                            onClick={() => handleSubmit(methods.getValues())}
+                            onClick={() => handleSubmit(getValues())}
                         >
                             {editing ? "Update" : "Add"} Expense
                         </Button>
@@ -245,8 +247,8 @@ export const ExpenseDialog = ({
                                 className="px-8"
                                 variant={"destructive"}
                                 onClick={() => {
-                                    deleteExpense(methods.getValues().id);
-                                    methods.reset();
+                                    deleteExpense(getValues().id);
+                                    reset();
                                     setEditingExpense(null);
                                     setIsEditExpensesOpen(false);
                                 }}

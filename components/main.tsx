@@ -6,20 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import {
     Sidebar,
     SidebarContent,
@@ -29,27 +21,32 @@ import {
     SidebarMenuButton,
     SidebarProvider,
     SidebarFooter,
+    SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { PlusCircle, Download, Upload, X } from "lucide-react";
 import Cookies from "js-cookie";
+import { FormProvider, useForm } from "react-hook-form";
+import { ExpenseDialog } from "./expense-dialog";
 
 type Split = {
     [key: string]: number;
 };
 
-type Expense = {
+export type Expense = {
     id: number;
     description: string;
-    amount: number;
+    amount: string;
     paidBy: string;
     split: Split;
+    splitWith: string[];
+    customSplit: boolean;
 };
 
-type Group = {
+export type Group = {
     id: number;
     name: string;
     expenses: Expense[];
-    friends: string[];
+    members: string[];
 };
 
 type Balance = {
@@ -57,18 +54,23 @@ type Balance = {
 };
 
 export default function Main() {
+    const methods = useForm<Expense>({
+        defaultValues: {
+            id: -1,
+            description: "",
+            amount: "0",
+            paidBy: "",
+            split: {},
+            splitWith: [],
+            customSplit: false,
+        },
+    });
+
     const [groups, setGroups] = useState<Group[]>([]);
     const [currentGroupId, setCurrentGroupId] = useState<number | null>(null);
     const [newGroupName, setNewGroupName] = useState("");
-    const [description, setDescription] = useState("");
-    const [amount, setAmount] = useState("");
-    const [paidBy, setPaidBy] = useState("");
-    const [splitWith, setSplitWith] = useState<string[]>([]);
-    const [customSplit, setCustomSplit] = useState<Split>({});
-    const [isCustomSplit, setIsCustomSplit] = useState(false);
-    const [newFriend, setNewFriend] = useState("");
+    const [newMember, setNewMember] = useState("");
     const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isEditMembersOpen, setIsEditMembersOpen] = useState(false);
     const [isEditExpensesOpen, setIsEditExpensesOpen] = useState(false);
     const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
@@ -98,7 +100,7 @@ export default function Main() {
                 id: Date.now(),
                 name: newGroupName,
                 expenses: [],
-                friends: [],
+                members: [],
             };
             setGroups([...groups, newGroup]);
             setCurrentGroupId(newGroup.id);
@@ -107,70 +109,63 @@ export default function Main() {
         }
     };
 
-    const addExpense = () => {
-        if (
-            currentGroup &&
-            description &&
-            amount &&
-            paidBy &&
-            (splitWith.length > 0 || Object.keys(customSplit).length > 0)
-        ) {
-            let split: Split = {};
-            if (isCustomSplit) {
-                split = customSplit;
-            } else {
-                const splitAmount = parseFloat(amount) / (splitWith.length + 1);
-                split = { [paidBy]: splitAmount };
-                splitWith.forEach((friend) => {
-                    split[friend] = splitAmount;
-                });
+    const addExpense = (data: Expense) => {
+        if (!currentGroup) return;
+        let split: Split = {};
+        if (data.customSplit) {
+            const updated: Record<string, number> = {};
+            for (const key in data.split) {
+                if (typeof data.split[key] === "string") {
+                    updated[key] = parseFloat(data.split[key]);
+                } else {
+                    updated[key] = data.split[key];
+                }
             }
-
-            const newExpense: Expense = {
-                id: Date.now(),
-                description,
-                amount: parseFloat(amount),
-                paidBy,
-                split,
-            };
-            const updatedGroup = {
-                ...currentGroup,
-                expenses: [...currentGroup.expenses, newExpense],
-            };
-            setGroups(
-                groups.map((group) =>
-                    group.id === currentGroup.id ? updatedGroup : group
-                )
-            );
-            resetForm();
+            split = updated;
+        } else {
+            const splitAmount =
+                parseFloat(data.amount) / (data?.splitWith?.length + 1);
+            split = { [data.paidBy]: splitAmount };
+            data?.splitWith?.forEach((member) => {
+                split[member] = splitAmount;
+            });
         }
+
+        console.log({ split });
+
+        const newExpense: Expense = {
+            ...data,
+            id: Date.now(),
+            split,
+        };
+        const updatedGroup = {
+            ...currentGroup,
+            expenses: [...(currentGroup?.expenses || []), newExpense],
+        };
+        setGroups(
+            groups.map((group) =>
+                group.id === currentGroup?.id || -1 ? updatedGroup : group
+            )
+        );
+        methods.reset();
     };
 
-    const resetForm = () => {
-        setDescription("");
-        setAmount("");
-        setPaidBy("");
-        setSplitWith([]);
-        setCustomSplit({});
-        setIsCustomSplit(false);
-    };
-
-    const addFriend = () => {
+    const addMember = () => {
         if (
             currentGroup &&
-            newFriend &&
-            !currentGroup.friends.includes(newFriend)
+            newMember &&
+            !currentGroup.members.includes(newMember)
         ) {
             const updatedGroup = {
                 ...currentGroup,
-                friends: [...currentGroup.friends, newFriend],
+                members: [...currentGroup.members, newMember],
             };
             setGroups(
                 groups.map((group) =>
                     group.id === currentGroup.id ? updatedGroup : group
                 )
             );
-            setNewFriend("");
+            setNewMember("");
         }
     };
 
@@ -178,11 +173,11 @@ export default function Main() {
         if (!currentGroup) return {};
 
         const balances: Balance = {};
-        currentGroup.friends.forEach((friend) => {
-            balances[friend] = {};
-            currentGroup.friends.forEach((otherFriend) => {
-                if (friend !== otherFriend) {
-                    balances[friend][otherFriend] = 0;
+        currentGroup.members.forEach((member) => {
+            balances[member] = {};
+            currentGroup.members.forEach((otherMember) => {
+                if (member !== otherMember) {
+                    balances[member][otherMember] = 0;
                 }
             });
         });
@@ -199,17 +194,33 @@ export default function Main() {
         return balances;
     };
 
-    const removeFriend = (friendToRemove: string) => {
+    const removeMember = (memberToRemove: string) => {
         if (currentGroup) {
             const updatedGroup = {
                 ...currentGroup,
-                friends: currentGroup.friends.filter(
-                    (friend) => friend !== friendToRemove
+                members: currentGroup.members.filter(
+                    (member) => member !== memberToRemove
                 ),
                 expenses: currentGroup.expenses.filter(
                     (expense) =>
-                        expense.paidBy !== friendToRemove &&
-                        !Object.keys(expense.split).includes(friendToRemove)
+                        expense.paidBy !== memberToRemove &&
+                        !Object.keys(expense.split).includes(memberToRemove)
+                ),
+            };
+            setGroups(
+                groups.map((group) =>
+                    group.id === currentGroup.id ? updatedGroup : group
+                )
+            );
+        }
+    };
+
+    const removeExpense = (id: number) => {
+        if (currentGroup) {
+            const updatedGroup = {
+                ...currentGroup,
+                expenses: currentGroup.expenses.filter(
+                    (expense) => expense.id !== id
                 ),
             };
             setGroups(
@@ -222,50 +233,35 @@ export default function Main() {
 
     const startEditingExpense = (expense: Expense) => {
         setEditingExpense(expense);
-        setDescription(expense.description);
-        setAmount(expense.amount.toString());
-        setPaidBy(expense.paidBy);
-        setSplitWith(
-            Object.keys(expense.split).filter(
-                (friend) => friend !== expense.paidBy
-            )
-        );
-        setCustomSplit(expense.split);
-        setIsCustomSplit(
-            Object.values(expense.split).some(
-                (amount) =>
-                    amount !==
-                    expense.amount / Object.keys(expense.split).length
-            )
-        );
-        setIsEditModalOpen(true);
+        setIsEditExpensesOpen(true);
     };
 
-    const saveEditedExpense = () => {
-        if (
-            currentGroup &&
-            editingExpense &&
-            description &&
-            amount &&
-            paidBy &&
-            (splitWith.length > 0 || Object.keys(customSplit).length > 0)
-        ) {
+    const saveEditedExpense = (data: Expense) => {
+        if (currentGroup && editingExpense) {
             let split: Split = {};
-            if (isCustomSplit) {
-                split = customSplit;
+            if (data.customSplit) {
+                const updated: Record<string, number> = {};
+                for (const key in split) {
+                    if (typeof split[key] === "string") {
+                        updated[key] = parseFloat(split[key]);
+                    } else {
+                        updated[key] = split[key];
+                    }
+                }
+                split = updated;
             } else {
-                const splitAmount = parseFloat(amount) / (splitWith.length + 1);
-                split = { [paidBy]: splitAmount };
-                splitWith.forEach((friend) => {
-                    split[friend] = splitAmount;
+                const splitAmount =
+                    parseFloat(data.amount) / (data.splitWith?.length || 0 + 1);
+                split = { [data.paidBy]: splitAmount };
+                data?.splitWith?.forEach((member) => {
+                    split[member] = splitAmount;
                 });
             }
 
+            console.log({ split });
+
             const updatedExpense: Expense = {
-                ...editingExpense,
-                description,
-                amount: parseFloat(amount),
-                paidBy,
+                ...data,
                 split,
             };
             const updatedGroup = {
@@ -279,14 +275,9 @@ export default function Main() {
                     group.id === currentGroup.id ? updatedGroup : group
                 )
             );
-            setIsEditModalOpen(false);
-            resetForm();
+            setIsEditExpensesOpen(false);
+            methods.reset();
         }
-    };
-
-    const updateCustomSplit = (friend: string, value: string) => {
-        const numValue = parseFloat(value) || 0;
-        setCustomSplit((prev) => ({ ...prev, [friend]: numValue }));
     };
 
     const downloadData = () => {
@@ -328,12 +319,29 @@ export default function Main() {
 
     const balances = calculateBalances();
 
+    const handleSubmit = (data: Expense) => {
+        if (editingExpense) {
+            saveEditedExpense(data);
+        } else {
+            addExpense(data);
+        }
+    };
+
     return (
         <SidebarProvider>
-            <div className="flex h-screen">
-                <Sidebar>
+            <div className="fixed top-0 w-screen lg:hidden border-b h-14 box-border flex flex-row justify-between items-center px-8">
+                <h2 className="text-xl font-bold">DivvyUp</h2>
+                <SidebarTrigger className="ml-auto" />
+            </div>
+            <div className="flex h-[calc(100vh-56px)] mt-16 lg:mt-0 lg:h-screen w-screen">
+                <Sidebar className="relative">
                     <SidebarHeader>
-                        <h2 className="text-xl font-bold p-4">DivvyUp</h2>
+                        <h2 className="text-xl font-bold p-4 hidden lg:block">
+                            DivvyUp
+                        </h2>
+                        <div className="ml-auto">
+                            <SidebarTrigger />
+                        </div>
                     </SidebarHeader>
                     <SidebarContent>
                         <SidebarMenu>
@@ -387,227 +395,41 @@ export default function Main() {
                         </SidebarFooter>
                     </SidebarContent>
                 </Sidebar>
-                <div className="flex-1 overflow-auto">
-                    <div className="container mx-auto p-4 max-w-7xl">
-                        <div className="flex flex-row items-center justify-between mb-6">
+                <div className="flex-1 overflow-auto h-full p-4 box-border">
+                    <div className="container mx-auto p-4 max-w-7xl h-full flex flex-col">
+                        <div className="flex flex-row items-center justify-between mb-6 w-full">
                             <h1 className="text-3xl font-bold">
                                 {currentGroup?.name || "Select a Group"}
                             </h1>
                             {currentGroup?.name && (
                                 <div className="flex flex-row gap-2">
-                                    <Dialog
-                                        open={isEditExpensesOpen}
-                                        onOpenChange={setIsEditExpensesOpen}
-                                    >
-                                        <DialogTrigger asChild>
-                                            <Button type="button">
-                                                Add Expense
-                                            </Button>
-                                        </DialogTrigger>
-                                        <DialogContent>
-                                            <DialogHeader>
-                                                <DialogTitle>
-                                                    Add Expense
-                                                </DialogTitle>
-                                            </DialogHeader>
-                                            <div className="grid gap-4">
-                                                <div>
-                                                    <Label htmlFor="description">
-                                                        Description
-                                                    </Label>
-                                                    <Input
-                                                        id="description"
-                                                        value={description}
-                                                        onChange={(e) =>
-                                                            setDescription(
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        placeholder="Expense description"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="amount">
-                                                        Amount
-                                                    </Label>
-                                                    <Input
-                                                        id="amount"
-                                                        type="number"
-                                                        value={amount}
-                                                        onChange={(e) =>
-                                                            setAmount(
-                                                                e.target.value
-                                                            )
-                                                        }
-                                                        placeholder="Expense amount"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="paidBy">
-                                                        Paid By
-                                                    </Label>
-                                                    <Select
-                                                        onValueChange={
-                                                            setPaidBy
-                                                        }
-                                                        value={paidBy}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select who paid" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {currentGroup.friends.map(
-                                                                (friend) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            friend
-                                                                        }
-                                                                        value={
-                                                                            friend
-                                                                        }
-                                                                    >
-                                                                        {friend}
-                                                                    </SelectItem>
-                                                                )
-                                                            )}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div>
-                                                    <Label htmlFor="splitWith">
-                                                        Split With
-                                                    </Label>
-                                                    <Select
-                                                        onValueChange={(
-                                                            value
-                                                        ) =>
-                                                            setSplitWith(
-                                                                (prev) => [
-                                                                    ...prev,
-                                                                    value,
-                                                                ]
-                                                            )
-                                                        }
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select friends to split with" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {currentGroup.friends
-                                                                .filter(
-                                                                    (friend) =>
-                                                                        friend !==
-                                                                            paidBy &&
-                                                                        !splitWith.includes(
-                                                                            friend
-                                                                        )
-                                                                )
-                                                                .map(
-                                                                    (
-                                                                        friend
-                                                                    ) => (
-                                                                        <SelectItem
-                                                                            key={
-                                                                                friend
-                                                                            }
-                                                                            value={
-                                                                                friend
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                friend
-                                                                            }
-                                                                        </SelectItem>
-                                                                    )
-                                                                )}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <div className="mt-2 flex flex-wrap gap-2">
-                                                        {splitWith.map(
-                                                            (friend) => (
-                                                                <span
-                                                                    key={friend}
-                                                                    className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm"
-                                                                >
-                                                                    {friend}
-                                                                    <button
-                                                                        onClick={() =>
-                                                                            setSplitWith(
-                                                                                splitWith.filter(
-                                                                                    (
-                                                                                        f
-                                                                                    ) =>
-                                                                                        f !==
-                                                                                        friend
-                                                                                )
-                                                                            )
-                                                                        }
-                                                                        className="ml-2 text-primary-foreground hover:text-red-500"
-                                                                    >
-                                                                        ×
-                                                                    </button>
-                                                                </span>
-                                                            )
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Switch
-                                                        id="custom-split"
-                                                        checked={isCustomSplit}
-                                                        onCheckedChange={
-                                                            setIsCustomSplit
-                                                        }
-                                                    />
-                                                    <Label htmlFor="custom-split">
-                                                        Custom Split
-                                                    </Label>
-                                                </div>
-                                                {isCustomSplit && (
-                                                    <div className="grid gap-2">
-                                                        {[
-                                                            paidBy,
-                                                            ...splitWith,
-                                                        ].map((friend) => (
-                                                            <div
-                                                                key={friend}
-                                                                className="flex items-center space-x-2"
-                                                            >
-                                                                <Label
-                                                                    htmlFor={`split-${friend}`}
-                                                                >
-                                                                    {friend}
-                                                                </Label>
-                                                                <Input
-                                                                    id={`split-${friend}`}
-                                                                    type="number"
-                                                                    value={
-                                                                        customSplit[
-                                                                            friend
-                                                                        ] || ""
-                                                                    }
-                                                                    onChange={(
-                                                                        e
-                                                                    ) =>
-                                                                        updateCustomSplit(
-                                                                            friend,
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                        )
-                                                                    }
-                                                                    placeholder="Amount"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                <Button onClick={addExpense}>
-                                                    Add Expense
-                                                </Button>
-                                            </div>
-                                        </DialogContent>
-                                    </Dialog>
+                                    <FormProvider {...methods}>
+                                        <form
+                                            onSubmit={methods.handleSubmit(
+                                                handleSubmit
+                                            )}
+                                        >
+                                            <ExpenseDialog
+                                                deleteExpense={removeExpense}
+                                                editing={!!editingExpense}
+                                                disabled={
+                                                    currentGroup?.members
+                                                        ?.length < 2
+                                                }
+                                                currentGroup={currentGroup}
+                                                isEditExpensesOpen={
+                                                    isEditExpensesOpen
+                                                }
+                                                handleSubmit={handleSubmit}
+                                                setEditingExpense={
+                                                    setEditingExpense
+                                                }
+                                                setIsEditExpensesOpen={
+                                                    setIsEditExpensesOpen
+                                                }
+                                            />
+                                        </form>
+                                    </FormProvider>
                                     <Dialog
                                         open={isEditMembersOpen}
                                         onOpenChange={setIsEditMembersOpen}
@@ -625,34 +447,34 @@ export default function Main() {
                                             </DialogHeader>
                                             <div className="flex gap-2">
                                                 <Input
-                                                    value={newFriend}
+                                                    value={newMember}
                                                     onChange={(e) =>
-                                                        setNewFriend(
+                                                        setNewMember(
                                                             e.target.value
                                                         )
                                                     }
                                                     placeholder="Member's name"
                                                 />
-                                                <Button onClick={addFriend}>
+                                                <Button onClick={addMember}>
                                                     Add Member
                                                 </Button>
                                             </div>
                                             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-                                                {currentGroup.friends.map(
-                                                    (friend) => (
+                                                {currentGroup.members.map(
+                                                    (member) => (
                                                         <div
-                                                            key={friend}
+                                                            key={member}
                                                             className="flex items-center justify-between py-1 pl-4 pr-1 border rounded-lg"
                                                         >
                                                             <span>
-                                                                {friend}
+                                                                {member}
                                                             </span>
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 onClick={() =>
-                                                                    removeFriend(
-                                                                        friend
+                                                                    removeMember(
+                                                                        member
                                                                     )
                                                                 }
                                                                 className="text-destructive"
@@ -668,259 +490,164 @@ export default function Main() {
                                 </div>
                             )}
                         </div>
-                        {currentGroup && (
-                            <div className="grid gap-6 md:grid-cols-2">
-                                <Card className="mb-6">
-                                    <CardHeader>
-                                        <CardTitle>Expenses</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {currentGroup.expenses.map(
-                                            (expense) => (
-                                                <div
-                                                    key={expense.id}
-                                                    className="mb-2 p-2 bg-muted rounded-lg flex justify-between items-center"
-                                                >
-                                                    <div>
-                                                        <p>
-                                                            <strong>
-                                                                {
-                                                                    expense.description
-                                                                }
-                                                            </strong>{" "}
-                                                            - $
-                                                            {expense.amount.toFixed(
-                                                                2
-                                                            )}
-                                                        </p>
-                                                        <p>
-                                                            Paid by:{" "}
-                                                            {expense.paidBy}
-                                                        </p>
-                                                        <p>
-                                                            Split:{" "}
-                                                            {Object.entries(
-                                                                expense.split
-                                                            )
-                                                                .map(
-                                                                    ([
-                                                                        friend,
-                                                                        amount,
-                                                                    ]) =>
-                                                                        `${friend}: $${amount.toFixed(
-                                                                            2
-                                                                        )}`
-                                                                )
-                                                                .join(", ")}
-                                                        </p>
-                                                    </div>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            startEditingExpense(
-                                                                expense
-                                                            )
-                                                        }
+                        {currentGroup && currentGroup?.members.length > 1 ? (
+                            currentGroup?.expenses?.length > 0 ? (
+                                <div className="flex flex-col-reverse gap-3 sm:flex-row flex-1 w-full sm:overflow-hidden">
+                                    <div className="sm:flex-1">
+                                        <h2 className="font-semibold">
+                                            Expenses
+                                        </h2>
+                                        <div className="pr-4 pt-2 pb-4 flex flex-col lg:grid lg:grid-cols-3 gap-3 overflow-y-scroll h-full">
+                                            {currentGroup.expenses.map(
+                                                (expense) => (
+                                                    <div
+                                                        key={expense.id}
+                                                        className="mb-2 p-2 bg-muted rounded-lg flex justify-between items-center"
                                                     >
-                                                        Edit
-                                                    </Button>
-                                                </div>
-                                            )
-                                        )}
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Balances</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {Object.entries(balances).map(
-                                            ([person, owes]) => (
-                                                <div
-                                                    key={person}
-                                                    className="mb-2"
-                                                >
-                                                    <h3 className="font-semibold">
-                                                        {person}
-                                                    </h3>
-                                                    {Object.entries(owes).map(
-                                                        ([
-                                                            otherPerson,
-                                                            amount,
-                                                        ]) =>
-                                                            amount !== 0 && (
-                                                                <p
-                                                                    key={
-                                                                        otherPerson
-                                                                    }
-                                                                    className={
-                                                                        amount >
-                                                                        0
-                                                                            ? "text-red-500"
-                                                                            : "text-green-500"
-                                                                    }
-                                                                >
-                                                                    {amount > 0
-                                                                        ? "Owes"
-                                                                        : "Is owed"}{" "}
-                                                                    $
-                                                                    {Math.abs(
-                                                                        amount
-                                                                    ).toFixed(
-                                                                        2
-                                                                    )}{" "}
-                                                                    {amount > 0
-                                                                        ? "to"
-                                                                        : "by"}{" "}
+                                                        <div>
+                                                            <p>
+                                                                <strong>
                                                                     {
-                                                                        otherPerson
+                                                                        expense.description
                                                                     }
-                                                                </p>
-                                                            )
-                                                    )}
-                                                </div>
-                                            )
-                                        )}
-                                    </CardContent>
-                                </Card>
+                                                                </strong>{" "}
+                                                                - $
+                                                                {expense.amount}
+                                                            </p>
+                                                            <p>
+                                                                Paid by:{" "}
+                                                                {expense.paidBy}
+                                                            </p>
+                                                            <p>
+                                                                Split:{" "}
+                                                                {Object.entries(
+                                                                    expense.split
+                                                                )
+                                                                    .map(
+                                                                        ([
+                                                                            member,
+                                                                            amount,
+                                                                        ]) =>
+                                                                            `${member}: $${amount.toFixed(
+                                                                                2
+                                                                            )}`
+                                                                    )
+                                                                    .join(", ")}
+                                                            </p>
+                                                        </div>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                methods.reset(
+                                                                    expense
+                                                                );
+                                                                startEditingExpense(
+                                                                    expense
+                                                                );
+                                                            }}
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Card className="min-w-[250px] h-fit">
+                                        <CardHeader>
+                                            <CardTitle>Balances</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            {Object.entries(balances).map(
+                                                ([person, owes]) => (
+                                                    <div
+                                                        key={person}
+                                                        className="mb-2"
+                                                    >
+                                                        <h3 className="font-semibold">
+                                                            {person}
+                                                        </h3>
+                                                        {Object.entries(
+                                                            owes
+                                                        ).map(
+                                                            ([
+                                                                otherPerson,
+                                                                amount,
+                                                            ]) =>
+                                                                amount !==
+                                                                    0 && (
+                                                                    <p
+                                                                        key={
+                                                                            otherPerson
+                                                                        }
+                                                                        className={
+                                                                            amount >
+                                                                            0
+                                                                                ? "text-red-500"
+                                                                                : "text-green-500"
+                                                                        }
+                                                                    >
+                                                                        {amount >
+                                                                        0
+                                                                            ? "Owes"
+                                                                            : "Is owed"}{" "}
+                                                                        $
+                                                                        {Math.abs(
+                                                                            amount
+                                                                        ).toFixed(
+                                                                            2
+                                                                        )}{" "}
+                                                                        {amount >
+                                                                        0
+                                                                            ? "to"
+                                                                            : "by"}{" "}
+                                                                        {
+                                                                            otherPerson
+                                                                        }
+                                                                    </p>
+                                                                )
+                                                        )}
+                                                    </div>
+                                                )
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            ) : (
+                                <div className="w-full items-center justify-center flex flex-col gap-3 flex-1">
+                                    <h3 className="text-xl font-bold">
+                                        Add some expenses to the group to get
+                                        started
+                                    </h3>
+                                    <Button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsEditExpensesOpen(true);
+                                        }}
+                                    >
+                                        Add Expenses
+                                    </Button>
+                                </div>
+                            )
+                        ) : (
+                            <div className="w-full items-center justify-center flex flex-col gap-3 flex-1">
+                                <h3 className="text-xl font-bold">
+                                    Add some members to the group to get started
+                                </h3>
+                                <Button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsEditMembersOpen(true);
+                                    }}
+                                >
+                                    Manage Members
+                                </Button>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
-
-            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Expense</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-description">
-                                Description
-                            </Label>
-                            <Input
-                                id="edit-description"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-amount">Amount</Label>
-                            <Input
-                                id="edit-amount"
-                                type="number"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-paidBy">Paid By</Label>
-                            <Select onValueChange={setPaidBy} value={paidBy}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select who paid" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {currentGroup?.friends.map((friend) => (
-                                        <SelectItem key={friend} value={friend}>
-                                            {friend}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-splitWith">Split With</Label>
-                            <Select
-                                onValueChange={(value) =>
-                                    setSplitWith((prev) => [...prev, value])
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select friends to split with" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {currentGroup?.friends
-                                        .filter(
-                                            (friend) =>
-                                                friend !== paidBy &&
-                                                !splitWith.includes(friend)
-                                        )
-                                        .map((friend) => (
-                                            <SelectItem
-                                                key={friend}
-                                                value={friend}
-                                            >
-                                                {friend}
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                                {splitWith.map((friend) => (
-                                    <span
-                                        key={friend}
-                                        className="bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm"
-                                    >
-                                        {friend}
-                                        <button
-                                            onClick={() =>
-                                                setSplitWith(
-                                                    splitWith.filter(
-                                                        (f) => f !== friend
-                                                    )
-                                                )
-                                            }
-                                            className="ml-2 text-primary-foreground hover:text-red-500"
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Switch
-                                id="edit-custom-split"
-                                checked={isCustomSplit}
-                                onCheckedChange={setIsCustomSplit}
-                            />
-                            <Label htmlFor="edit-custom-split">
-                                Custom Split
-                            </Label>
-                        </div>
-                        {isCustomSplit && (
-                            <div className="grid gap-2">
-                                {[paidBy, ...splitWith].map((friend) => (
-                                    <div
-                                        key={friend}
-                                        className="flex items-center space-x-2"
-                                    >
-                                        <Label htmlFor={`edit-split-${friend}`}>
-                                            {friend}
-                                        </Label>
-                                        <Input
-                                            id={`edit-split-${friend}`}
-                                            type="number"
-                                            value={customSplit[friend] || ""}
-                                            onChange={(e) =>
-                                                updateCustomSplit(
-                                                    friend,
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder="Amount"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <Button onClick={saveEditedExpense}>Save Changes</Button>
-                </DialogContent>
-            </Dialog>
 
             <Dialog
                 open={isAddGroupModalOpen}

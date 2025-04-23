@@ -96,9 +96,9 @@ export default function Home() {
                                 Payment Tracking
                             </h3>
                             <p className="mt-2 text-gray-300">
-                                Keep track of who has paid and who hasn't. Mark
-                                expenses as paid and maintain a clear record of
-                                all transactions.
+                                Keep track of who has paid and who hasn&apos;t.
+                                Mark expenses as paid and maintain a clear
+                                record of all transactions.
                             </p>
                         </div>
                     </div>

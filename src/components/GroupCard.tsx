@@ -8,14 +8,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-
-interface Group {
-    _id: string;
-    name: string;
-    description?: string;
-    members: any[];
-    expenses: any[];
-}
+import { Group } from "@/types";
 
 export default function GroupCard({ group }: { group: Group }) {
     return (

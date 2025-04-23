@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Group } from "@/types";
 import React from "react";
-import type { ReactElement } from "react";
 
 export default async function BreadcrumbSlot({
     params,

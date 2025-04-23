@@ -1,64 +1,19 @@
 "use client";
 
-import { useState } from "react";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-interface Expense {
-    _id: string;
-    description: string;
-    amount: number;
-    date: string;
-    paidBy: {
-        _id: string;
-        name: string;
-    };
-    splitType: "equal" | "percentage" | "amount";
-    splits: {
-        user: {
-            _id: string;
-            name: string;
-        };
-        amount: number;
-        percentage?: number;
-        isPaid: boolean;
-    }[];
-}
+import { Expense } from "@/types";
 
 interface ExpenseListProps {
     groupId: string;
     expenses: Expense[];
 }
 
-export default function ExpenseList({ groupId, expenses }: ExpenseListProps) {
-    const [selectedExpense, setSelectedExpense] = useState<Expense | null>(
-        null
-    );
-
-    const handleMarkAsPaid = async (expenseId: string, userId: string) => {
-        try {
-            const response = await fetch(
-                `/api/expenses/${expenseId}/mark-paid`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ userId }),
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error("Failed to mark expense as paid");
-            }
-
-            // Refresh the expense list
-            window.location.reload();
-        } catch (error) {
-            console.error("Error marking expense as paid:", error);
-        }
+export default function ExpenseList({ expenses }: ExpenseListProps) {
+    const handleMarkAsPaid = async () => {
+        return;
     };
 
     return (
@@ -122,11 +77,7 @@ export default function ExpenseList({ groupId, expenses }: ExpenseListProps) {
                                                             variant="outline"
                                                             size="sm"
                                                             onClick={() =>
-                                                                handleMarkAsPaid(
-                                                                    expense._id,
-                                                                    split.user
-                                                                        ._id
-                                                                )
+                                                                handleMarkAsPaid()
                                                             }
                                                             className="bg-green-900/20 text-green-400 hover:bg-green-900/30"
                                                         >

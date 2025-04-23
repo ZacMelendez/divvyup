@@ -1,16 +1,13 @@
 "use client";
 
-import { useAtom } from "jotai";
 import { usePathname } from "next/navigation";
 import { Link } from "next-view-transitions";
 import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { createGroupModalOpenAtom } from "@/atoms";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
     const { data: session } = useSession();
     const pathname = usePathname();
-    const [, setCreateGroupModalOpen] = useAtom(createGroupModalOpenAtom);
 
     const isActive = (path: string) => pathname === path;
 

@@ -31,7 +31,7 @@ interface CreateExpenseModalProps {
         percentages?: Record<string, string>,
         amounts?: Record<string, string>
     ) => Promise<void>;
-    groupId: string;
+
     members: User[];
 }
 
@@ -39,7 +39,7 @@ export default function CreateExpenseModal({
     isOpen,
     onClose,
     onExpenseCreated,
-    groupId,
+
     members,
 }: CreateExpenseModalProps) {
     const [description, setDescription] = useState("");

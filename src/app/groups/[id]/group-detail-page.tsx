@@ -11,14 +11,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, UserPlus } from "lucide-react";
 import { addMember, createExpense } from "@/app/actions";
-import { Group, Expense } from "@/types";
+import { Group } from "@/types";
 
 export default function GroupDetailPage({
     group: initialGroup,
 }: {
     group: Group;
 }) {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const [group, setGroup] = useState(initialGroup);
     const [isCreateExpenseModalOpen, setIsCreateExpenseModalOpen] =
@@ -121,7 +121,6 @@ export default function GroupDetailPage({
                 isOpen={isCreateExpenseModalOpen}
                 onClose={() => setIsCreateExpenseModalOpen(false)}
                 onExpenseCreated={handleCreateExpense}
-                groupId={group._id}
                 members={group.members}
             />
 
@@ -129,7 +128,6 @@ export default function GroupDetailPage({
                 isOpen={isAddMemberModalOpen}
                 onClose={() => setIsAddMemberModalOpen(false)}
                 onMemberAdded={handleAddMember}
-                groupId={group._id}
                 currentMembers={group.members}
             />
         </div>

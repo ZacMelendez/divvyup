@@ -1,20 +1,4 @@
-import { getGroups } from "@/app/actions";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { Group } from "@/types";
-import { HydrationBoundary } from "jotai-ssr";
-import { GroupsLayout } from "./components/Layout";
-import { groupsAtom } from "@/atoms";
-import { headers } from "next/headers";
-import { Link } from "next-view-transitions";
-
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { AppSidebar } from "@/components/app-sidebar";
 
 export default async function Layout({

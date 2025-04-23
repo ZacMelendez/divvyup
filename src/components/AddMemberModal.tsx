@@ -16,7 +16,6 @@ interface AddMemberModalProps {
     isOpen: boolean;
     onClose: () => void;
     onMemberAdded: (email: string) => Promise<void>;
-    groupId: string;
     currentMembers: User[];
 }
 
@@ -24,8 +23,6 @@ export default function AddMemberModal({
     isOpen,
     onClose,
     onMemberAdded,
-    groupId,
-    currentMembers,
 }: AddMemberModalProps) {
     const [email, setEmail] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
